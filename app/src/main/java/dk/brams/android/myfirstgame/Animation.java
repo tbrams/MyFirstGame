@@ -2,9 +2,6 @@ package dk.brams.android.myfirstgame;
 
 import android.graphics.Bitmap;
 
-/**
- * Created by tbrams on 24/11/15.
- */
 public class Animation {
     private Bitmap[] frames;
     private int currentFrame;
@@ -26,8 +23,7 @@ public class Animation {
     public void update() {
         long elapsed = (System.nanoTime()-startTime)/1000000;
 
-        if(elapsed>delay)
-        {
+        if(elapsed>delay) {
             currentFrame++;
             startTime = System.nanoTime();
         }

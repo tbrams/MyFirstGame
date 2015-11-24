@@ -2,10 +2,7 @@ package dk.brams.android.myfirstgame;
 
 import android.graphics.Rect;
 
-/**
- * Created by tbrams on 24/11/15.
- */
-public class GameObject {
+public abstract class GameObject {
     protected int x;
     protected int y;
     protected int dy;

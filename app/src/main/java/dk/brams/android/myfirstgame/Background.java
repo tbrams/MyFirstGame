@@ -3,9 +3,6 @@ package dk.brams.android.myfirstgame;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 
-/**
- * Created by tbrams on 24/11/15.
- */
 public class Background {
     private Bitmap image;
     private int x, y, dx;

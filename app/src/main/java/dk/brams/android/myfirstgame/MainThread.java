@@ -3,9 +3,6 @@ package dk.brams.android.myfirstgame;
 import android.graphics.Canvas;
 import android.view.SurfaceHolder;
 
-/**
- * Created by tbrams on 24/11/15.
- */
 public class MainThread extends Thread {
 
     private int FPS = 30;
@@ -43,20 +40,15 @@ public class MainThread extends Thread {
                     this.gamePanel.update();
                     this.gamePanel.draw(canvas);
                 }
-            } catch (Exception e) {
-            }
+            } catch (Exception e) {}
             finally{
-                if(canvas!=null)
-                {
+                if(canvas!=null) {
                     try {
                         surfaceHolder.unlockCanvasAndPost(canvas);
                     }
                     catch(Exception e){e.printStackTrace();}
                 }
             }
-
-
-
 
             timeMillis = (System.nanoTime() - startTime) / 1000000;
             waitTime = targetTime-timeMillis;
