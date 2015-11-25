@@ -62,6 +62,7 @@ public class Player extends GameObject{
         canvas.drawBitmap(animation.getImage(),x,y,null);
     }
 
+
     public int getScore(){return score;}
     public boolean getPlaying(){return playing;}
     public void setPlaying(boolean b){playing = b;}
