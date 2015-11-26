@@ -175,7 +175,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
         // initialize the sound variables for easy reading
         mp3Heli = mSounds.get(2);
         mp3Missile = mSounds.get(3);
-        mp3Explode = mSounds.get(0);
+        mp3Explode = mSounds.get(1);
 
     }
 
@@ -225,7 +225,6 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 if(!gameStarted)
                     gameStarted = true;
 
-                Log.i(TAG, "onTouchEvent: Starting heli sound");
                 startSound(mp3Heli, LOOP);
                 reset = false;
                 player.setUp(true);
@@ -276,11 +275,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             if(maxBorderHeight > HEIGHT/4)maxBorderHeight = HEIGHT/4;
             minBorderHeight = 5+player.getScore()/progressDenom;
 
-            //update top border
-            this.updateTopBorder();
-
-            //update bottom border
-            this.updateBottomBorder();
+            //update borders
+            updateTopBorder();
+            updateBottomBorder();
 
             //add new missiles when it is time for a new one
             long missileElapsed = (System.nanoTime()-missileStartTime)/1000000;
@@ -294,7 +291,10 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                     mY=(int)(rand.nextDouble()*(HEIGHT - (maxBorderHeight * 2))+maxBorderHeight);
 
                 // Add new missile and reset timer
-                missiles.add(new Missile(BitmapFactory.decodeResource(getResources(),R.drawable.missile), mX, mY, 45, 15, player.getScore(), 13));
+                missiles.add(new Missile(BitmapFactory.decodeResource(getResources(), R.drawable.missile), mX, mY, 45, 15, player.getScore(), 13));
+
+                int missileStreamId = mSoundPool.play(mp3Missile.getSoundId(), .20f, .20f, 1, PLAY_ONCE, 0.8f);
+                missiles.get(missiles.size()-1).setStreamId(missileStreamId);
                 missileStartTime = System.nanoTime();
             }
 
@@ -304,7 +304,8 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 missiles.get(i).update();
 
                 if(collision(missiles.get(i),player)) {
-                    Log.i(TAG, "update: collision missile "+i);
+                    Log.i(TAG, "update: collision missile " + i);
+                    mSoundPool.stop(missiles.get(i).getStreamId());
                     missiles.remove(i);
                     player.setPlaying(false);
                     collision=true;
@@ -313,6 +314,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
                 //remove missile if it is way off the screen
                 if(missiles.get(i).getX()<-100) {
+                    mSoundPool.stop(missiles.get(i).getStreamId());
                     missiles.remove(i);
                     Log.i(TAG, "update: removing missile "+i);
                 }

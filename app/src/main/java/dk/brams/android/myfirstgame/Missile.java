@@ -8,6 +8,7 @@ import java.util.Random;
 public class Missile extends GameObject{
     private int score;
     private int speed;
+    private int streamId;
     private Random rand = new Random();
     private Animation animation = new Animation();
     private Bitmap spritesheet;
@@ -51,4 +52,11 @@ public class Missile extends GameObject{
         return width-10;
     }
 
+    public int getStreamId() {
+        return streamId;
+    }
+
+    public void setStreamId(int streamId) {
+        this.streamId = streamId;
+    }
 }
