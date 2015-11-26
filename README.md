@@ -2,7 +2,7 @@
 A simple 2D helicopter survival game using scrolling bitmaps based on a tutorial I found on youtube by 
 [paymon wang-lotfi](https://www.youtube.com/user/Paymon112233). 
 
-![screenshot](https://github.com/tbrams/MyFirstGame/blob/master/Screenshot.png "screenshot title screen")
+<img src="https://github.com/tbrams/MyFirstGame/blob/master/Screenshot.png" width="600">
 
 
 The youtube edition was very promising, but unfortunately never evolved above a certain stage. Hence I have improved it by cleaning up 
