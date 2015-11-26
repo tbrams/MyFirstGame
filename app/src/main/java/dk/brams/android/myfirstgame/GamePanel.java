@@ -1,21 +1,29 @@
 package dk.brams.android.myfirstgame;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 {
+    private static final String TAG = "GamePanel";
     public static final int WIDTH = 856;
     public static final int HEIGHT = 480;
     public static final int MOVESPEED = -5;
@@ -42,20 +50,28 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     private long startReset;
     private boolean reset;
     private boolean disappear;
-    private boolean started;
+    private boolean gameStarted;
     private int currentHighScore;
     private int score;
     private static final int SCORE_BOOSTER = 3;
 
+    private static final int MAX_SOUNDS=10;
+    private static final String SOUND_FOLDER = "sound";
+    private AssetManager mAssets;
+    private List<Sound> mSounds = new ArrayList<>();
+    private SoundPool mSoundPool;
+    private Sound mp3Heli, mp3Missile, mp3Explode;
+    private static final int LOOP=-1;
+    private static final int PLAY_ONCE=0;
 
-    // For handling listener interface in hosting activity
+
+
+    // Listener interface for hosting activity to save score in shared preferences
     public interface HighScoreListener {
         public void onHighScoreUpdated(int best);
     }
 
-
     private HighScoreListener mHighScoreListener;
-
 
     public void setHighScoreListener(HighScoreListener listener){
         this.mHighScoreListener =listener;
@@ -87,25 +103,32 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceDestroyed(SurfaceHolder holder){
         boolean retry = true;
         int counter = 0;
-        while(retry && counter<1000) {
-            counter++;
+        while(retry && counter++<1000) {
             try{thread.setRunning(false);
                 thread.join();
                 retry = false;
                 thread = null;
-
-            }catch(InterruptedException e){e.printStackTrace();}
-
+            }
+            catch(InterruptedException ie) {
+                Log.i(TAG, "surfaceDestroyed: Current thread has been interrupted", ie);
+            }
         }
-
     }
+
+
 
     @Override
     public void surfaceCreated(SurfaceHolder holder){
 
         bg = new Background(BitmapFactory.decodeResource(getResources(), R.drawable.grassbg1));
+        bg.setVector(-5);
         player = new Player(BitmapFactory.decodeResource(getResources(), R.drawable.helicopter), 65, 25, 3);
         player.resetScore();
+
+        mAssets=getContext().getAssets();
+
+        loadSounds();
+
         smoke = new ArrayList<Smokepuff>();
         missiles = new ArrayList<Missile>();
         topborder = new ArrayList<TopBorder>();
@@ -121,6 +144,74 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     }
 
 
+    private void loadSounds() {
+        // old constructor needed here for compatibility
+        mSoundPool = new SoundPool(MAX_SOUNDS, AudioManager.STREAM_MUSIC, 0);
+
+        String[] soundNames;
+        try {
+            soundNames = mAssets.list(SOUND_FOLDER);
+            Log.i(TAG, "loadSounds: found "+soundNames.length + " sounds");
+            for(String s:soundNames)
+                Log.i(TAG, "Loaded sound "+s);
+
+        } catch (IOException e) {
+            Log.e(TAG, "loadSounds: Could not list assets", e);
+            return;
+        }
+
+        for (String fileName : soundNames) {
+            try {
+                String assetPath = SOUND_FOLDER + "/" + fileName;
+                Sound sound = new Sound(assetPath);
+                load(sound);
+                mSounds.add(sound);
+            } catch (IOException ioe) {
+                Log.e(TAG, "loadSounds: Could not load sound: "+fileName, ioe );
+            }
+        }
+
+        // initialize the sound variables for easy reading
+        mp3Heli = mSounds.get(2);
+        mp3Missile = mSounds.get(3);
+        mp3Explode = mSounds.get(0);
+
+    }
+
+
+    private void load(Sound sound) throws IOException {
+        AssetFileDescriptor afd = mAssets.openFd(sound.getAssetPath());
+        int soundId=mSoundPool.load(afd, 1);
+        sound.setSoundId(soundId);
+    }
+
+
+    public void startSound(Sound sound, int playOnceOrLoop) {
+        if (sound.getStreamId()==null) {
+            Integer soundId = sound.getSoundId();
+            if (soundId == null)
+                return;
+
+            int streamId = mSoundPool.play(soundId, 1.0f, 1.0f, 1, playOnceOrLoop, 1.0f);
+            sound.setStreamId(streamId);
+        } else {
+            mSoundPool.resume(sound.getStreamId());
+        }
+    }
+
+    public void stopSound(Sound sound) {
+        Integer streamId = sound.getStreamId();
+        if (streamId==null)
+            return;
+
+        mSoundPool.pause(streamId);
+    }
+
+
+    public void releaseSoundPool() {
+        mSoundPool.release();
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if(event.getAction()==MotionEvent.ACTION_DOWN){
@@ -130,7 +221,11 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             }
             if(player.getPlaying()) {
 
-                if(!started)started = true;
+                if(!gameStarted)
+                    gameStarted = true;
+
+                Log.i(TAG, "onTouchEvent: Starting heli sound");
+                startSound(mp3Heli, LOOP);
                 reset = false;
                 player.setUp(true);
             }
@@ -161,7 +256,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             player.update();
 
             //calculate the threshold of height the border can have based on the score
-            //max and min border heart are updated, and the border switched direction when either max or
+            //max and min border height are updated, and the border switched direction when either max or
             //min is met
 
             maxBorderHeight = 30+player.getScore()/progressDenom;
@@ -171,14 +266,17 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
             //check bottom border collision
             for(int i = 0; i<botborder.size(); i++) {
-                if(collision(botborder.get(i), player))
+                if(collision(botborder.get(i), player)) {
                     player.setPlaying(false);
+                }
+
             }
 
             //check top border collision
             for(int i = 0; i <topborder.size(); i++) {
-                if(collision(topborder.get(i),player))
+                if(collision(topborder.get(i),player)) {
                     player.setPlaying(false);
+                }
             }
 
             //update top border
@@ -187,27 +285,25 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             //update bottom border
             this.updateBottomBorder();
 
-            //add missiles on timer
+            //add new missiles when it is time for a new one
             long missileElapsed = (System.nanoTime()-missileStartTime)/1000000;
             if(missileElapsed >(2000 - player.getScore()/4)){
+                int mX= WIDTH + 10;
+                int mY=0;
 
-                //first missile always goes down the middle
-                if(missiles.size()==0) {
-                    missiles.add(new Missile(BitmapFactory.decodeResource(getResources(),R.drawable.
-                            missile),WIDTH + 10, HEIGHT/2, 45, 15, player.getScore(), 13));
-                } else {
+                if(missiles.size()==0)
+                    mY=HEIGHT/2;   //first missile always goes down the middle
+                 else
+                    mY=(int)(rand.nextDouble()*(HEIGHT - (maxBorderHeight * 2))+maxBorderHeight);
 
-                    missiles.add(new Missile(BitmapFactory.decodeResource(getResources(),R.drawable.missile),
-                            WIDTH+10, (int)(rand.nextDouble()*(HEIGHT - (maxBorderHeight * 2))+maxBorderHeight),45,15, player.getScore(),13));
-                }
-
-                //reset timer
+                // Add new missile and reset timer
+                missiles.add(new Missile(BitmapFactory.decodeResource(getResources(),R.drawable.missile), mX, mY, 45, 15, player.getScore(), 13));
                 missileStartTime = System.nanoTime();
             }
 
-            //loop through every missile and check collision and remove
+            //loop through every missiles. Check collision and cleanup
             for(int i = 0; i<missiles.size();i++) {
-                //update missile
+                //update each missile position and image
                 missiles.get(i).update();
 
                 if(collision(missiles.get(i),player)) {
@@ -215,6 +311,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                     player.setPlaying(false);
                     break;
                 }
+
                 //remove missile if it is way off the screen
                 if(missiles.get(i).getX()<-100) {
                     missiles.remove(i);
@@ -222,7 +319,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 }
             }
 
-            //add smoke puffs on timer
+            //add smoke puffs when it is time for a new one
             long elapsed = (System.nanoTime() - smokeStartTime)/1000000;
             if(elapsed > 120){
                 smoke.add(new Smokepuff(player.getX(), player.getY()+10));
@@ -236,6 +333,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 }
             }
         } else {
+
+            stopSound(mp3Heli);
+
             player.resetDY();
             if(!reset) {
                 newGameCreated = false;
@@ -279,6 +379,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             if(!disappear) {
                 player.draw(canvas);
             }
+
             //draw smokepuffs
             for(Smokepuff sp: smoke) {
                 sp.draw(canvas);
@@ -300,7 +401,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             }
 
             //draw explosion
-            if(started) {
+            if(gameStarted) {
                 explosion.draw(canvas);
             }
 
@@ -321,7 +422,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             topborder.get(i).update();
             if(topborder.get(i).getX()<-20) {
                 topborder.remove(i);
-                //remove element of arraylist, replace it by adding a new one
+                //remove element if out of screen, replace it by adding a new one
 
                 //calculate topdown which determines the direction the border is moving (up or down)
                 if(topborder.get(topborder.size()-1).getHeight()>=maxBorderHeight) {
@@ -388,6 +489,16 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
 
     public void newGame() {
+        Log.i(TAG, "newGame: called - releasing and reloading soundpool");
+        // release SoundPool and reference as required in documentation
+        mSoundPool.release();
+        mSoundPool=null;
+        mSounds.clear();
+
+        // create a new instance from scratch and initialize sound vars
+        loadSounds();
+
+
         // If the new score is better that the record, update and notify the hosting activity
         if(player.getScore()> currentHighScore) {
             currentHighScore = player.getScore();
@@ -413,7 +524,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
         //initial top border
         for(int i = 0; i*20<WIDTH+40;i++) {
-            //first top border create
+            //create first top border
             if(i==0) {
                 topborder.add(new TopBorder(BitmapFactory.decodeResource(getResources(),R.drawable.brick
                 ),i*20,0, 10));
@@ -425,10 +536,9 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
         //initial bottom border
         for(int i = 0; i*20<WIDTH+40; i++) {
-            //first border ever created
             if(i==0) {
                 botborder.add(new BotBorder(BitmapFactory.decodeResource(getResources(),R.drawable.brick)
-                        ,i*20,HEIGHT - minBorderHeight));
+                        ,i*20, HEIGHT - minBorderHeight));
             } else {
                 //adding borders until the initial screen is filed
                 botborder.add(new BotBorder(BitmapFactory.decodeResource(getResources(), R.drawable.brick),
@@ -437,8 +547,6 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
         }
 
         newGameCreated = true;
-
-
     }
 
 
