@@ -7,7 +7,7 @@ public class Animation {
     private int currentFrame;
     private long startTime;
     private long delay;
-    private boolean playedOnce=false;
+    private boolean animatedOnce=false;
 
 
     public void setFrames(Bitmap[] frames) {
@@ -21,12 +21,6 @@ public class Animation {
         delay = delay;
     }
 
-
-    public void setFrame(int frame){
-        currentFrame= frame;
-    }
-
-
     public void update() {
         long elapsed = (System.nanoTime()-startTime)/1000000;
 
@@ -37,12 +31,12 @@ public class Animation {
 
         if(currentFrame == frames.length){
             currentFrame = 0;
-            playedOnce = true;
+            animatedOnce = true;
         }
     }
 
 
     public Bitmap getImage(){return frames[currentFrame];}
     public int getFrame(){return currentFrame;}
-    public boolean playedOnce(){return playedOnce;}
+    public boolean isAnimatedAlready(){return animatedOnce;}
 }

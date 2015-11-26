@@ -33,14 +33,14 @@ public class Explosion {
 
 
     public void draw(Canvas canvas) {
-        if(!animation.playedOnce()) {
+        if(!animation.isAnimatedAlready()) {
             canvas.drawBitmap(animation.getImage(),x,y,null);
         }
     }
 
 
     public void update() {
-        if(!animation.playedOnce()) {
+        if(!animation.isAnimatedAlready()) {
             animation.update();
         }
     }
