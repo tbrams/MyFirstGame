@@ -12,47 +12,41 @@ public class Missile extends GameObject{
     private Animation animation = new Animation();
     private Bitmap spritesheet;
 
-    public Missile(Bitmap res, int x, int y, int w, int h, int s, int numFrames)
-    {
-        super.x = x;
-        super.y = y;
-        width = w;
-        height = h;
-        score = s;
+    public Missile(Bitmap verticalSprites, int x, int y, int width, int height, int score, int numFrames) {
 
+        super(x,y,width,height);
+
+        // set capped speed depending on current game score
         speed = 7 + (int) (rand.nextDouble()*score/30);
+        if(speed>40)
+            speed = 40;
 
-        //cap missile speed
-        if(speed>40)speed = 40;
-
+        // unpack images from sprites
         Bitmap[] image = new Bitmap[numFrames];
-
-        spritesheet = res;
-
-        for(int i = 0; i<image.length;i++)
-        {
-            image[i] = Bitmap.createBitmap(spritesheet, 0, i*height, width, height);
+        for(int i = 0; i<numFrames;i++) {
+            image[i] = Bitmap.createBitmap(verticalSprites, 0, i*height, width, height);
         }
 
         animation.setFrames(image);
         animation.setDelay(100-speed);
-
     }
-    public void update()
-    {
+
+
+    public void update() {
         x-=speed;
         animation.update();
     }
-    public void draw(Canvas canvas)
-    {
-        try{
+
+
+    public void draw(Canvas canvas) {
+        try {
             canvas.drawBitmap(animation.getImage(),x,y,null);
-        }catch(Exception e){}
+        } catch(Exception e){}
     }
 
+
     @Override
-    public int getWidth()
-    {
+    public int getWidth() {
         //offset slightly for more realistic collision detection
         return width-10;
     }

@@ -22,14 +22,14 @@ public class Background {
 
     public void draw(Canvas canvas) {
         canvas.drawBitmap(image, x, y,null);
+        // If part of the background is now off screen, path with second image displaced
         if(x<0)
-        {
             canvas.drawBitmap(image, x+GamePanel.WIDTH, y, null);
-        }
     }
 
 
     public void setVector(int dx) {
         this.dx = dx;
     }
+
 }

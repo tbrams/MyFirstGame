@@ -1,10 +1,11 @@
 package dk.brams.android.myfirstgame;
 
 import android.graphics.Canvas;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 public class MainThread extends Thread {
-
+    private static final String TAG = "MainThread";
     private int FPS = 30;
     private double averageFPS;
     private SurfaceHolder surfaceHolder;
@@ -37,8 +38,8 @@ public class MainThread extends Thread {
             try {
                 canvas = this.surfaceHolder.lockCanvas();
                 synchronized (surfaceHolder) {
-                    this.gamePanel.update();
-                    this.gamePanel.draw(canvas);
+                    gamePanel.update();
+                    gamePanel.draw(canvas);
                 }
             } catch (Exception e) {}
             finally{
@@ -64,7 +65,7 @@ public class MainThread extends Thread {
                 averageFPS = 1000/((totalTime/frameCount)/1000000);
                 frameCount =0;
                 totalTime = 0;
-                System.out.println(averageFPS);
+                Log.i(TAG, "run: averageFPS = "+averageFPS);
             }
         }
     }

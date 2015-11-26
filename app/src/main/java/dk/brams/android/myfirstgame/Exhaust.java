@@ -4,16 +4,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 
-public class Smokepuff extends GameObject {
-    public int r;
+public class Exhaust extends GameObject {
+    private int r;
 
-
-    public Smokepuff(int x, int y) {
+    public Exhaust(int x, int y) {
+        super(x, y, 0, 0);
         r = 5;
-        super.x = x;
-        super.y = y;
     }
-
 
     public void update() {
         x-=10;

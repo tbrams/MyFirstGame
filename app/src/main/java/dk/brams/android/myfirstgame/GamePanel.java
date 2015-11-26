@@ -32,7 +32,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     private MainThread thread;
     private Background bg;
     private Player player;
-    private ArrayList<Smokepuff> smoke;
+    private ArrayList<Exhaust> smoke;
     private ArrayList<Missile> missiles;
     private ArrayList<TopBorder> topborder;
     private ArrayList<BotBorder> botborder;
@@ -51,6 +51,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     private boolean reset;
     private boolean disappear;
     private boolean gameStarted;
+    private boolean collision=false;
     private int currentHighScore;
     private int score;
     private static final int SCORE_BOOSTER = 3;
@@ -129,7 +130,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
 
         loadSounds();
 
-        smoke = new ArrayList<Smokepuff>();
+        smoke = new ArrayList<Exhaust>();
         missiles = new ArrayList<Missile>();
         topborder = new ArrayList<TopBorder>();
         botborder = new ArrayList<BotBorder>();
@@ -243,17 +244,28 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
     public void update() {
         if(player.getPlaying()) {
 
-            if(botborder.isEmpty()) {
-                player.setPlaying(false);
-                return;
-            }
-            if(topborder.isEmpty()) {
-                player.setPlaying(false);
-                return;
-            }
-
             bg.update();
             player.update();
+
+
+            //check bottom border collision
+            for(int i = 0; i<botborder.size(); i++) {
+                if(collision(botborder.get(i), player)) {
+                    player.setPlaying(false);
+                    collision=true;
+                    break;
+                }
+
+            }
+
+            //check top border collision
+            for(int i = 0; i <topborder.size(); i++) {
+                if(collision(topborder.get(i),player)) {
+                    player.setPlaying(false);
+                    collision=true;
+                    break;
+                }
+            }
 
             //calculate the threshold of height the border can have based on the score
             //max and min border height are updated, and the border switched direction when either max or
@@ -263,21 +275,6 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             //cap max border height so that borders can only take up a total of 1/2 the screen
             if(maxBorderHeight > HEIGHT/4)maxBorderHeight = HEIGHT/4;
             minBorderHeight = 5+player.getScore()/progressDenom;
-
-            //check bottom border collision
-            for(int i = 0; i<botborder.size(); i++) {
-                if(collision(botborder.get(i), player)) {
-                    player.setPlaying(false);
-                }
-
-            }
-
-            //check top border collision
-            for(int i = 0; i <topborder.size(); i++) {
-                if(collision(topborder.get(i),player)) {
-                    player.setPlaying(false);
-                }
-            }
 
             //update top border
             this.updateTopBorder();
@@ -307,22 +304,24 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 missiles.get(i).update();
 
                 if(collision(missiles.get(i),player)) {
+                    Log.i(TAG, "update: collision missile "+i);
                     missiles.remove(i);
                     player.setPlaying(false);
+                    collision=true;
                     break;
                 }
 
                 //remove missile if it is way off the screen
                 if(missiles.get(i).getX()<-100) {
                     missiles.remove(i);
-                    break;
+                    Log.i(TAG, "update: removing missile "+i);
                 }
             }
 
             //add smoke puffs when it is time for a new one
             long elapsed = (System.nanoTime() - smokeStartTime)/1000000;
             if(elapsed > 120){
-                smoke.add(new Smokepuff(player.getX(), player.getY()+10));
+                smoke.add(new Exhaust(player.getX(), player.getY()+10));
                 smokeStartTime = System.nanoTime();
             }
 
@@ -344,6 +343,11 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
                 disappear = true;
                 explosion = new Explosion(BitmapFactory.decodeResource(getResources(),R.drawable.explosion),player.getX(),
                         player.getY()-30, 100, 100, 25);
+
+                if (collision) {
+                    startSound(mp3Explode,PLAY_ONCE);
+                    collision=false;
+                }
             }
 
             explosion.update();
@@ -381,7 +385,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback
             }
 
             //draw smokepuffs
-            for(Smokepuff sp: smoke) {
+            for(Exhaust sp: smoke) {
                 sp.draw(canvas);
             }
             //draw missiles

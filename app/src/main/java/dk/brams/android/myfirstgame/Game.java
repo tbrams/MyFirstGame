@@ -11,6 +11,7 @@ import android.view.WindowManager;
 public class Game extends Activity {
     private static final String TAG = "Game";
     private static final String HIGHSCORE = "Record";
+    private GamePanel panel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,16 +26,16 @@ public class Game extends Activity {
         // get last highscore from shared preferences
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         int currentHighScore = sharedPref.getInt(HIGHSCORE, 0);
-        Log.i(TAG, "onCreate: read highscore from preferences = "+currentHighScore);
+        Log.i(TAG, "onCreate: read highscore from preferences = " + currentHighScore);
 
-        GamePanel panel = new GamePanel(this, currentHighScore);
+        panel = new GamePanel(this, currentHighScore);
 
         // set listener for handling new high score
         panel.setHighScoreListener(new GamePanel.HighScoreListener() {
             @Override
             public void onHighScoreUpdated(int best) {
                 // code to handle updates
-                Log.i(TAG, "onHighScoreUpdated: new best value = "+best);
+                Log.i(TAG, "onHighScoreUpdated: new best value = " + best);
 
                 // Update shared preferences
                 SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
@@ -47,4 +48,10 @@ public class Game extends Activity {
         setContentView(panel);
     }
 
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        panel.releaseSoundPool();
+    }
 }

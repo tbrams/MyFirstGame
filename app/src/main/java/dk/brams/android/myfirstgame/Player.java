@@ -12,8 +12,8 @@ public class Player extends GameObject{
 
     public Player(Bitmap verticalSprites, int width, int height, int numFrames) {
 
-        x = 100;
-        y = GamePanel.HEIGHT / 2;
+        super(100, GamePanel.HEIGHT/2, width, height);
+
         dy = 0;
         score = 0;
 
